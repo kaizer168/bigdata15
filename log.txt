@@ -1,0 +1,118 @@
+$ sudo docker-compose build
+[sudo] password for ubuntu: 
+zookeeper uses an image, skipping
+kafka uses an image, skipping
+mysql uses an image, skipping
+grafana uses an image, skipping
+Building data-generator
+Sending build context to Docker daemon  33.28kB
+Step 1/9 : FROM maven:3.8-jdk-8-slim AS builder
+ ---> f863be7bf36a
+Step 2/9 : COPY ./src /opt/data-producer/src
+ ---> Using cache
+ ---> 226d6c89a974
+Step 3/9 : COPY ./pom.xml /opt/data-producer/pom.xml
+ ---> Using cache
+ ---> d1b4cea3ec6f
+Step 4/9 : RUN cd /opt/data-producer;     mvn clean install
+ ---> Using cache
+ ---> 55db6f8ae0dd
+Step 5/9 : FROM openjdk:8-jre
+ ---> d991802804b7
+Step 6/9 : COPY --from=builder /opt/data-producer/target/data-generator-*.jar /opt/data-generator.jar
+ ---> Using cache
+ ---> 538fcf7ff963
+Step 7/9 : RUN cd /opt
+ ---> Using cache
+ ---> d1edaf567344
+Step 8/9 : COPY docker-entrypoint.sh /
+ ---> Using cache
+ ---> 3a7789dec85e
+Step 9/9 : ENTRYPOINT ["/docker-entrypoint.sh"]
+ ---> Using cache
+ ---> 6af2825cf85e
+Successfully built 6af2825cf85e
+Successfully tagged apache/data-generator:1
+Building jobmanager
+Sending build context to Docker daemon  57.86kB
+Step 1/8 : FROM maven:3.8-jdk-8-slim AS builder
+ ---> f863be7bf36a
+Step 2/8 : COPY ./pom.xml /opt/pom.xml
+ ---> Using cache
+ ---> 2c7c7ef8e8ce
+Step 3/8 : COPY ./src /opt/src
+ ---> Using cache
+ ---> ac742219e574
+Step 4/8 : RUN cd /opt; mvn clean install -Dmaven.test.skip
+ ---> Using cache
+ ---> e9bdb9946855
+Step 5/8 : FROM apache/flink:1.14.4-scala_2.12-java8
+ ---> 9b9f9da308b5
+Step 6/8 : RUN wget -P /opt/flink/lib/ https://repo.maven.apache.org/maven2/org/apache/flink/flink-sql-connector-kafka_2.12/1.14.4/flink-sql-connector-kafka_2.12-1.14.4.jar;     wget -P /opt/flink/lib/ https://repo.maven.apache.org/maven2/org/apache/flink/flink-connector-jdbc_2.12/1.14.4/flink-connector-jdbc_2.12-1.14.4.jar;     wget -P /opt/flink/lib/ https://repo.maven.apache.org/maven2/org/apache/flink/flink-csv/1.14.4/flink-csv-1.14.4.jar;     wget -P /opt/flink/lib/ https://repo.maven.apache.org/maven2/mysql/mysql-connector-java/8.0.19/mysql-connector-java-8.0.19.jar;
+ ---> Using cache
+ ---> d4b405ccd983
+Step 7/8 : COPY --from=builder /opt/target/spend-report-*.jar /opt/flink/usrlib/spend-report.jar
+ ---> Using cache
+ ---> 52bd1461b2bb
+Step 8/8 : RUN echo "execution.checkpointing.interval: 10s" >> /opt/flink/conf/flink-conf.yaml;     echo "pipeline.object-reuse: true" >> /opt/flink/conf/flink-conf.yaml;     echo "pipeline.time-characteristic: EventTime" >> /opt/flink/conf/flink-conf.yaml;     echo "taskmanager.memory.jvm-metaspace.size: 256m" >> /opt/flink/conf/flink-conf.yaml;
+ ---> Using cache
+ ---> 57b93e091ec0
+Successfully built 57b93e091ec0
+Successfully tagged apache/flink-table-walkthrough:1-FLINK-1.14-scala_2.12
+Building taskmanager
+Sending build context to Docker daemon  57.86kB
+Step 1/8 : FROM maven:3.8-jdk-8-slim AS builder
+ ---> f863be7bf36a
+Step 2/8 : COPY ./pom.xml /opt/pom.xml
+ ---> Using cache
+ ---> 2c7c7ef8e8ce
+Step 3/8 : COPY ./src /opt/src
+ ---> Using cache
+ ---> ac742219e574
+Step 4/8 : RUN cd /opt; mvn clean install -Dmaven.test.skip
+ ---> Using cache
+ ---> e9bdb9946855
+Step 5/8 : FROM apache/flink:1.14.4-scala_2.12-java8
+ ---> 9b9f9da308b5
+Step 6/8 : RUN wget -P /opt/flink/lib/ https://repo.maven.apache.org/maven2/org/apache/flink/flink-sql-connector-kafka_2.12/1.14.4/flink-sql-connector-kafka_2.12-1.14.4.jar;     wget -P /opt/flink/lib/ https://repo.maven.apache.org/maven2/org/apache/flink/flink-connector-jdbc_2.12/1.14.4/flink-connector-jdbc_2.12-1.14.4.jar;     wget -P /opt/flink/lib/ https://repo.maven.apache.org/maven2/org/apache/flink/flink-csv/1.14.4/flink-csv-1.14.4.jar;     wget -P /opt/flink/lib/ https://repo.maven.apache.org/maven2/mysql/mysql-connector-java/8.0.19/mysql-connector-java-8.0.19.jar;
+ ---> Using cache
+ ---> d4b405ccd983
+Step 7/8 : COPY --from=builder /opt/target/spend-report-*.jar /opt/flink/usrlib/spend-report.jar
+ ---> Using cache
+ ---> 52bd1461b2bb
+Step 8/8 : RUN echo "execution.checkpointing.interval: 10s" >> /opt/flink/conf/flink-conf.yaml;     echo "pipeline.object-reuse: true" >> /opt/flink/conf/flink-conf.yaml;     echo "pipeline.time-characteristic: EventTime" >> /opt/flink/conf/flink-conf.yaml;     echo "taskmanager.memory.jvm-metaspace.size: 256m" >> /opt/flink/conf/flink-conf.yaml;
+ ---> Using cache
+ ---> 57b93e091ec0
+Successfully built 57b93e091ec0
+Successfully tagged apache/flink-table-walkthrough:1-FLINK-1.14-scala_2.12
+
+
+$ sudo docker-compose up -d
+Creating network "table-walkthrough_default" with the default driver
+Creating table-walkthrough_mysql_1          ... done
+Creating table-walkthrough_zookeeper_1 ... done
+Creating table-walkthrough_kafka_1     ... done
+Creating table-walkthrough_data-generator_1 ... done
+Creating table-walkthrough_jobmanager_1     ... done
+Creating table-walkthrough_grafana_1        ... done
+Creating table-walkthrough_taskmanager_1    ... done
+
+
+$ sudo docker-compose ps
+           Name                         Command             State              Ports           
+-----------------------------------------------------------------------------------------------
+table-walkthrough_data-       /docker-entrypoint.sh         Up                                 
+generator_1                                                                                    
+table-walkthrough_grafana_1   /run.sh                       Up      0.0.0.0:3000->3000/tcp,:::3
+                                                                    000->3000/tcp              
+table-                        /docker-entrypoint.sh stan    Up      6123/tcp, 0.0.0.0:8082->808
+walkthrough_jobmanager_1      ...                                   1/tcp,:::8082->8081/tcp    
+table-walkthrough_kafka_1     start-kafka.sh                Up      0.0.0.0:9092->9092/tcp,:::9
+                                                                    092->9092/tcp              
+table-walkthrough_mysql_1     docker-entrypoint.sh --def    Up      3306/tcp, 33060/tcp        
+                              ...                                                              
+table-                        /docker-entrypoint.sh task    Up      6121/tcp, 6122/tcp,        
+walkthrough_taskmanager_1     ...                                   6123/tcp, 8081/tcp         
+table-                        /bin/sh -c /usr/sbin/sshd     Up      0.0.0.0:2181->2181/tcp,:::2
+walkthrough_zookeeper_1       ...                                   181->2181/tcp, 22/tcp,     
+                                                                    2888/tcp, 3888/tcp         
